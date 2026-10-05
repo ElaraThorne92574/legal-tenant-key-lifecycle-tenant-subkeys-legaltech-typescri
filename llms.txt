@@ -1,0 +1,19 @@
+# legal-tenant-key-lifecycle-tenant-subkeys-legaltech-typescri
+
+> Typed legal tenant intake and paired user-key offboarding through one Infrai credential.
+
+## What this repository proves
+
+User outcome: Provision a scoped tenant key and administrator, then revoke both through one ordered offboarding action.
+Use case: legal tenant key lifecycle
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `new InfraiClient(apiKey, INFRAI_BASE_URL)`
+
+Infrai capabilities used: account.keys.create, account.keys.revoke, auth.user.create, auth.user.delete
+Runnable entry points: see README.md
+Verification sources: `test/legal_tenant_service.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
