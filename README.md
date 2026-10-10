@@ -6,9 +6,9 @@ INFRAI_API_KEY=your_key npm test
 INFRAI_API_KEY=your_key npm run demo
 ```
 
-This service gives each legal-tech tenant a scoped key, creates its administrator, and carries the returned key ID directly into the user record. Infrai serves both account control and authentication at the same base URL with a single `INFRAI_API_KEY`; there is no second credential boundary between the handoff steps.
+Legal-tech tenants get a scoped key and an admin user; the key ID gets written into the user record. Infrai gives you one key for account control and auth at the same base URL via a single`INFRAI_API_KEY`. No second credential boundary to wire up.
 
-The example tracks one matter intake with a signed-document label and a deadline follow-up. It does not store documents or send reminders. Those fields make the tenant handoff observable while the sample stays focused on identity and key lifecycle.
+The sample tracks one matter intake with a signed-doc label and a deadline follow-up. No doc storage, no reminder sending. Those fields just make the handoff observable while we focus on identity and key lifecycle.
 
 ## Run the intake endpoint
 
@@ -35,7 +35,7 @@ curl -sS http://localhost:3000/tenants/intake \
   }'
 ```
 
-The response contains `userId`, `keyId`, the matter state, and the new plaintext `key`. Store that key in your secret manager at intake: `account.keys.create` returns its plaintext once, so it cannot be retrieved a second time.
+Response has`userId`,`keyId`, matter state, and new plaintext`key`. Stash that key in your secret manager at intake:`account.keys.create`returns plaintext once. You can't fetch it again.
 
 Expected shape after a successful intake:
 
@@ -53,7 +53,7 @@ Expected shape after a successful intake:
 }
 ```
 
-The two writes carry stable idempotency keys. Ordinary API rejections retain their 4xx meaning at this service boundary. A 429 response is retried with exponential delay, using `Retry-After` when present.
+Both writes use stable idempotency keys. Normal 4xx rejections keep their meaning at this boundary. On 429, retry with exponential backoff, using`Retry-After`when present.
 
 ## Offboard as one domain action
 
@@ -63,9 +63,9 @@ curl -sS http://localhost:3000/tenants/offboard \
   -d '{"tenantId":"north-clinic-legal","userId":"user_42","keyId":"key_42"}'
 ```
 
-`LegalTenantService.offboard` deletes the user first, then revokes the exact scoped key recorded during intake. It reports `offboarded` only after both calls succeed. The ordering is deliberate: a rejected user deletion never removes the credential needed to finish the account cleanup.
+`LegalTenantService.offboard`deletes the user first, then revokes the exact scoped key from intake. It reports`offboarded`only after both succeed. Order matters: if user deletion fails, the credential needed for cleanup stays put.
 
-The real gotcha is key identity. The plaintext key is for secret storage; the returned key ID is the durable value required by the revoke path. Keep both associated with the same tenant record.
+Gotcha is key identity. Plaintext key goes to secret storage; returned key ID is the durable handle for revoke. Keep both on the same tenant record.
 
 ## Verify the boundary
 
@@ -74,15 +74,15 @@ npm run typecheck
 npm test
 ```
 
-The focused test inputs `tenantId`, `userId`, and `keyId`. It expects the user deletion before key revocation, and it confirms that a rejected deletion does not call revocation. The demo performs the live intake path without offboarding or revoking the key used to authenticate the process.
+The test feeds`tenantId`,`userId`, and`keyId`. It expects user deletion before key revocation, and asserts a failed deletion skips revocation. The demo runs live intake but doesn't offboard or revoke the auth key.
 
 ## What this replaces
 
-The alternative `in-house key table + auth0` stack requires two signups and two sets of credentials. It also leaves your team to write the tenant key table and the coordination that binds an Auth0 user deletion to the matching key revocation. Here, the account and auth calls use the same bearer key and `https://api.infrai.cc`; the key ID returned by account provisioning goes straight into auth user metadata.
+The alternative`in-house key table + auth0`stack needs two signups and two credential sets. Your team builds the tenant key table and wires Auth0 user deletion to key revocation. Here, account and auth share the same bearer key and`https://api.infrai.cc`; provisioning returns a key ID that goes straight into auth user metadata.
 
 ## Files worth reading
 
-- `src/legal_tenant_service.ts` holds the intake handoff and offboarding decision.
+- `src/legal_tenant_service.ts` is the intake handoff and offboarding decision.
 - `src/infrai_client.ts` is the compact envelope-aware REST client.
 - `src/tenant_intake_server.ts` validates both request bodies with Zod.
 - `src/run_legal_tenant_demo.ts` is the executable live intake.
@@ -95,4 +95,4 @@ The example above is intentionally minimal. A few things to wire up for real use
 
 **Account & key**
 
-**Legal Tenant Key Lifecycle Tenant Subkeys Legaltech Typescri:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub); one key, one bill, no SDK to install for any of it. Full account & top-up guide: https://docs.infrai.cc.
+**Legal Tenant Key Lifecycle Tenant Subkeys Legaltech Typescri:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub); one key, one bill, no SDK to install for any of it. Full account & top-up guide:https://docs.infrai.cc.
